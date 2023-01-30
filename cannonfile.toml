@@ -1,0 +1,20 @@
+name = "synthetix-sandbox"
+version = "0.1"
+description = "Synthetix Sandbox"
+
+# Provision Collateral Token
+
+# Provision Synthetix Core and Oracle Manager
+[provision.synthetix]
+source = "synthetix:latest"
+
+# Provision Spot Market
+
+# Deploy Sample Integration
+[contract.SampleIntegration]
+artifact = "SampleIntegration"
+args = [
+    "<%= imports.synthetix.contracts.CoreProxy.address %>",
+    "<%= imports.synthetix.contracts.USDProxy.address %>"
+]
+depends = ["provision.synthetix"]
