@@ -2,19 +2,65 @@ name = "synthetix-sandbox"
 version = "0.1"
 description = "Synthetix Sandbox"
 
+[setting.synthetix]
+
+[setting.spotMarket]
+
 # Provision Collateral Token
+
+# configure market collaleral max supply cap
+
+# Create new Pool
+
+# Stake Collateral
 
 # Provision Synthetix Core and Oracle Manager
 [provision.synthetix]
-source = "synthetix:latest"
+source = "<%= settings.synthetix %>"
 
 # Provision Spot Market
+[provision.spotMarket]
+source = "<%= settings.spotMarket %>"
 
-# Deploy Sample Integration
-[contract.SampleIntegration]
-artifact = "SampleIntegration"
-args = [
-    "<%= imports.synthetix.contracts.CoreProxy.address %>",
-    "<%= imports.synthetix.contracts.USDProxy.address %>"
-]
-depends = ["provision.synthetix"]
+[setting.chainlink_aggregator]
+description = "Chainlink aggregator address for the synth"
+defaultValue = "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e" # Goerli ETH/USD
+
+[setting.chainlink_verification_contract]
+description = "Chainlink verification contract address; utilized to verify the offchain price of the synth"
+defaultValue = "0x914490940582e818c1a9107ac2aF6f057bbe481a" # Goerli Chainlink Verification Contract
+
+[invoke.registerSynth]
+target = ["SpotMarketProxy"]
+func = "createSynth"
+from = "<%= settings.marketOwner %>"
+args = ["Synthetic Ether", "snxETH", "<%= settings.marketOwner %>"]
+depends = ['provision.spotMarket']
+
+extra.synth_market_id.event = "SynthRegistered"
+extra.synth_market_id.arg = 0
+
+# delegate pool collateral to market
+
+[invoke.registerOracleNode]
+target = ["oracle_manager.Proxy"]
+func = "registerOracleNode"
+from = "<%= settings.marketOwner %>"
+# TODO: make this dynamic?
+# abi.encode(['address', 'uint256', 'uint8'], ["0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e", 0, 18]);
+args = [3, "0x000000000000000000000000d4a33860578de61dbabdc8bfdb98fd742fa7028e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012", []]
+
+extra.snx_eth_oracle_id.event = "NodeRegistered"
+extra.snx_eth_oracle_id.arg = 0
+
+[invoke.updateSynthPriceData]
+target = ["SpotMarketProxy"]
+func = "updatePriceData"
+from = "<%= settings.marketOwner %>"
+args = ["<%= extras.synth_market_id %>", "<%= extras.snx_eth_oracle_id %>", "<%= extras.snx_eth_oracle_id %>"]
+
+[invoke.addSettlementStrategy]
+target = ["SpotMarketProxy"]
+func = "addSettlementStrategy"
+from = "<%= settings.marketOwner %>"
+args = ["<%= extras.synth_market_id %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlink_verification_contract %>", feedId = "ETH-USD", url = "https://mercury-srv.chain.link/client" }]
