@@ -6,13 +6,12 @@ description = "Synthetix Sandbox"
 
 [setting.spotMarket]
 
+[setting.scPoolId]
+defaultValue = "1"
+
+[setting.scPoolOwner]
+
 # Provision Collateral Token
-
-# configure market collaleral max supply cap
-
-# Create new Pool
-
-# Stake Collateral
 
 # Provision Synthetix Core and Oracle Manager
 [provision.synthetix]
@@ -22,6 +21,9 @@ source = "<%= settings.synthetix %>"
 [provision.spotMarket]
 source = "<%= settings.spotMarket %>"
 
+[setting.user]
+description = "sample user address to mint collateral and stake"
+
 [setting.chainlink_aggregator]
 description = "Chainlink aggregator address for the synth"
 defaultValue = "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e" # Goerli ETH/USD
@@ -29,6 +31,34 @@ defaultValue = "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e" # Goerli ETH/USD
 [setting.chainlink_verification_contract]
 description = "Chainlink verification contract address; utilized to verify the offchain price of the synth"
 defaultValue = "0x914490940582e818c1a9107ac2aF6f057bbe481a" # Goerli Chainlink Verification Contract
+
+# Mint Collateral to user
+
+# configure market collaleral max supply cap
+
+# Create new Pool
+
+[invoke.createScPool]
+target = ["system.CoreProxy"]
+from = "<%= settings.scPoolOwner %>"
+func = "createPool"
+args = [
+    "<%= settings.scPoolId %>",
+    "<%= settings.scPoolOwner %>",
+]
+depends=["provision.synthetix"]
+
+[invoke.setPreferredPool]
+target = ["synthetix.CoreProxy"]
+fromCall.func = "owner"
+func = "setPreferredPool"
+args = [
+    "<%= settings.scPoolId %>",
+]
+depends=["invoke.createScPool"]
+
+# Stake Collateral
+
 
 [invoke.registerSynth]
 target = ["SpotMarketProxy"]
