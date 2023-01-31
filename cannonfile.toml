@@ -2,75 +2,83 @@ name = "synthetix-sandbox"
 version = "0.1"
 description = "Synthetix Sandbox"
 
+[setting.user]
+defaultValue="0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+
 [setting.synthetix]
+defaultValue="synthetix:latest"
 
 [setting.spotMarket]
+defaultValue="spot-market:latest"
 
-[setting.scPoolId]
+[setting.poolId]
 defaultValue = "1"
 
-[setting.scPoolOwner]
-
 # Provision Collateral Token
+[provision.collateralToken]
+source = "mintable-token:latest"
+
+# Provision Chainlink Mock for Collateral Token ($2)
+[provision.collateralChainink]
+source = "chainlink-mock-v3-aggregator:latest"
+initialAnswer = "2000000000000000000"
 
 # Provision Synthetix Core and Oracle Manager
 [provision.synthetix]
 source = "<%= settings.synthetix %>"
+owner = "<%= settings.user %>"
 
-# Provision Spot Market
-[provision.spotMarket]
-source = "<%= settings.spotMarket %>"
+# Register Oracle Manager Node for Collateral Token
 
-[setting.user]
-description = "sample user address to mint collateral and stake"
 
-[setting.chainlink_aggregator]
-description = "Chainlink aggregator address for the synth"
-defaultValue = "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e" # Goerli ETH/USD
+# Configure Collateral Token as Collateral
 
-[setting.chainlink_verification_contract]
-description = "Chainlink verification contract address; utilized to verify the offchain price of the synth"
-defaultValue = "0x914490940582e818c1a9107ac2aF6f057bbe481a" # Goerli Chainlink Verification Contract
 
-# Mint Collateral to user
-
-# configure market collaleral max supply cap
-
-# Create new Pool
-
-[invoke.createScPool]
+# Create Pool
+[invoke.createPool]
 target = ["system.CoreProxy"]
-from = "<%= settings.scPoolOwner %>"
+from = "<%= settings.poolOwner %>"
 func = "createPool"
 args = [
-    "<%= settings.scPoolId %>",
-    "<%= settings.scPoolOwner %>",
+    "<%= settings.poolId %>",
+    "<%= settings.poolOwner %>",
 ]
 depends=["provision.synthetix"]
 
+# Set Pool as 'Preferred'
 [invoke.setPreferredPool]
 target = ["synthetix.CoreProxy"]
 fromCall.func = "owner"
 func = "setPreferredPool"
 args = [
-    "<%= settings.scPoolId %>",
+    "<%= settings.poolId %>",
 ]
-depends=["invoke.createScPool"]
+depends=["invoke.createPool"]
 
-# Stake Collateral
+# User receives collateral token
 
+# User deposits collateral token
 
+# User delegates to pool
+
+# User mints half of collateral value
+
+# Provision Spot Market
+[provision.spotMarket]
+source = "<%= settings.spotMarket %>"
+owner = "<%= settings.user %>"
+
+# Create snxTKN Synth
 [invoke.registerSynth]
 target = ["SpotMarketProxy"]
 func = "createSynth"
 from = "<%= settings.marketOwner %>"
-args = ["Synthetic Ether", "snxETH", "<%= settings.marketOwner %>"]
+args = ["Synthetic Token", "snxTKN", "<%= settings.marketOwner %>"]
 depends = ['provision.spotMarket']
-
 extra.synth_market_id.event = "SynthRegistered"
 extra.synth_market_id.arg = 0
 
-# delegate pool collateral to market
+# Allow market to deposit TKN collateral
 
 [invoke.registerOracleNode]
 target = ["oracle_manager.Proxy"]
@@ -95,4 +103,4 @@ func = "addSettlementStrategy"
 from = "<%= settings.marketOwner %>"
 args = ["<%= extras.synth_market_id %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlink_verification_contract %>", feedId = "ETH-USD", url = "https://mercury-srv.chain.link/client" }]
 
-# initializing wrapper
+# initialize wrapper
