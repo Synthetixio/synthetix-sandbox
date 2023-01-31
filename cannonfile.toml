@@ -14,41 +14,69 @@ defaultValue="spot-market:latest"
 [setting.poolId]
 defaultValue = "1"
 
-# Provision Collateral Token
+# Provision collateral token
 [provision.collateralToken]
 source = "mintable-token:latest"
 
-# Provision Chainlink Mock for Collateral Token ($2)
-[provision.collateralChaininkMock]
+# Provision Chainlink mock for collateral token ($2)
+[provision.collateralChainlinkMock]
 source = "chainlink-mock-v3-aggregator:latest"
 initialAnswer = "2000000000000000000"
 
-# Provision Synthetix Core and Oracle Manager
+# Provision Synthetix core and oracle manager
 [provision.synthetix]
 source = "<%= settings.synthetix %>"
 owner = "<%= settings.user %>"
 
-# Register Oracle Manager Node for Collateral Token
-
-
-# Configure Collateral Token as Collateral
-
-
-# Create Pool
-[invoke.createPool]
-target = ["system.CoreProxy.address"]
-from = "<%= settings.poolOwner %>"
-func = "createPool"
+# Register oracle manager node for collateral token
+[invoke.registerCollateralPriceNode]
+target = ["synthetix.oracle_manager.Proxy"]
+func = "registerNode"
 args = [
-    "<%= settings.poolId %>",
-    "<%= settings.poolOwner %>",
+    3, # Type for Chainlink aggregator
+    "<%= defaultAbiCoder.encode(['address', 'uint256', 'uint8'], [imports.collateralChainlinkMock.contracts.MockV3Aggregator.address, 0, 18]) %>",
+    [],
+]
+extra.tkn_oracle_id.event = "NodeRegistered"
+extra.tkn_oracle_id.arg = 0
+depends = ["provision.synthetix", "provision.collateralChainlinkMock"]
+
+# Configure collateral token as collateral for core
+[invoke.configureTknCollateral]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "configureCollateral"
+args = [
+  { tokenAddress = "<%= imports.collateralToken.contracts.MintableToken.address %>", oracleNodeId = "<%= extras.tkn_oracle_id %>", issuanceRatioD18 = "<%= parseEther('2') %>", liquidationRatioD18 = "<%= parseEther('1.5') %>", liquidationRewardD18 = "<%= parseEther('1') %>", minDelegationD18 = "<%= parseEther('1') %>", depositingEnabled = true }
+]
+depends = ["invoke.registerCollateralPriceNode", "provision.collateralToken"]
+
+# Allow user to create pools
+[invoke.allowFeatureFlag]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "addToFeatureFlagAllowlist"
+args = [
+    "<%= formatBytes32String('createPool') %>",
+    "<%= settings.user %>",
 ]
 depends=["provision.synthetix"]
 
-# Set Pool as 'Preferred'
+# Create pool
+[invoke.createPool]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "createPool"
+args = [
+    "<%= settings.poolId %>",
+    "<%= settings.user %>"
+]
+depends=["invoke.allowFeatureFlag"]
+
+# Set pool as preferred
 [invoke.setPreferredPool]
-target = ["synthetix.CoreProxy.address"]
-from = "owner"
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
 func = "setPreferredPool"
 args = [
     "<%= settings.poolId %>",
@@ -57,58 +85,97 @@ depends=["invoke.createPool"]
 
 # User receives collateral token
 [invoke.mintCollateral]
-target = ["imports.collateralToken.address"]
+target = ["collateralToken.MintableToken"]
+func = "mint"
 args = [
-    "<%= parseEther(1000000) =>",
+    "<%= parseEther('1000000') %>",
+    "<%= settings.user %>"
 ]
 depends=["provision.collateralToken"]
+
+# User creates account
+[invoke.createAccount]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "createAccount"
+args = ["1"]
+depends = ["provision.synthetix"]
+
+# User approves transfer of collateral
+[invoke.approveDeposit]
+target = ["collateralToken.MintableToken"]
+from = "<%= settings.user %>"
+func = "approve"
+args = [
+    "<%= imports.synthetix.contracts.CoreProxy.address =>",
+    "<%= parseEther('1000000') =>",
+]
+depends=["provision.synthetix", "invoke.mintCollateral"]
 
 # User deposits collateral token
-
+[invoke.depositCollateral]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "deposit"
+args = [
+    "<%= settings.poolId %>",
+]
+depends=["invoke.createAccount", "invoke.approveDeposit"]
 
 # User delegates to pool
-
-
-# User mints half of collateral value
-[invoke.mintStablecoins]
-target = ["imports.collateralToken.address"]
+[invoke.delegateCollateral]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "delegateCollateral"
 args = [
-    "<%= parseEther(1000000) =>",
+#TBD
 ]
-depends=["provision.collateralToken"]
+depends=["invoke.depositCollateral"]
 
-# Provision Spot Market
-[provision.spotMarket]
-source = "<%= settings.spotMarket %>"
-owner = "<%= settings.user %>"
+# # User mints half of collateral value
+# [invoke.mintStablecoins]
+# target = ["imports.collateralToken.address"]
+# args = [
+#     "<%= parseEther(1000000) =>",
+# ]
+# depends=["provision.collateralToken"]
+# 
+# # Provision Spot Market
+# [provision.spotMarket]
+# source = "<%= settings.spotMarket %>"
+# options.owner = "<%= settings.user %>"
+# options.synthetixPackage = "<%= settings.synthetix %>"
+# depends = ["provision.synthetix"]
+# 
+# # Create snxTKN Synth
+# [invoke.createSynth]
+# target = ["imports.spotMarket.address"]
+# func = "createSynth"
+# from = "<%= settings.user %>"
+# args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
+# depends = ['provision.spotMarket']
+# extra.synth_market_id.event = "SynthRegistered"
+# extra.synth_market_id.arg = 0
+# 
+# # Allow market to deposit TKN collateral
+# 
+# 
+# # Initialize wrapper
 
-# Create snxTKN Synth
-[invoke.registerSynth]
-target = ["imports.spotMarket.address"]
-func = "createSynth"
-from = "<%= settings.user %>"
-args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
-depends = ['provision.spotMarket']
-extra.synth_market_id.event = "SynthRegistered"
-extra.synth_market_id.arg = 0
 
-# Allow market to deposit TKN collateral
-
-# Initialize wrapper
-
-# Set oracle nodes for spot market price
-[invoke.updateSynthPriceData]
-target = ["imports.spotMarket.address"]
-func = "updatePriceData"
-from = "<%= settings.user %>"
-args = ["<%= extras.synth_market_id %>", "<%= extras.snx_eth_oracle_id %>", "<%= extras.snx_eth_oracle_id %>"]
-depends = ['invoke.registerSynth']
-
-# Add a settlement strategy
-[invoke.addSettlementStrategy]
-target = ["imports.spotMarket.address"]
-func = "addSettlementStrategy"
-from = "<%= settings.user %>"
-args = ["<%= extras.synth_market_id %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlink_verification_contract %>", feedId = "ETH-USD", url = "https://mercury-srv.chain.link/client" }]
-depends = ['invoke.registerSynth']
+# Set oracle nodes for synth price
+# [invoke.updateSynthPriceData]
+# target = ["imports.spotMarket.address"]
+# func = "updatePriceData"
+# from = "<%= settings.user %>"
+# args = ["<%= extras.synth_market_id %>", "<%= extras.snx_eth_oracle_id %>", "<%= extras.snx_eth_oracle_id %>"]
+# depends = ['invoke.registerSynth']
+# 
+# # Add a settlement strategy
+# [invoke.addSettlementStrategy]
+# target = ["imports.spotMarket.address"]
+# func = "addSettlementStrategy"
+# from = "<%= settings.user %>"
+# args = ["<%= extras.synth_market_id %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlink_verification_contract %>", feedId = "ETH-USD", url = "https://mercury-srv.chain.link/client" }]
+# depends = ['invoke.registerSynth']
 
