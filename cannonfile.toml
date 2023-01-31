@@ -19,7 +19,7 @@ defaultValue = "1"
 source = "mintable-token:latest"
 
 # Provision Chainlink Mock for Collateral Token ($2)
-[provision.collateralChainink]
+[provision.collateralChaininkMock]
 source = "chainlink-mock-v3-aggregator:latest"
 initialAnswer = "2000000000000000000"
 
@@ -36,7 +36,7 @@ owner = "<%= settings.user %>"
 
 # Create Pool
 [invoke.createPool]
-target = ["system.CoreProxy"]
+target = ["system.CoreProxy.address"]
 from = "<%= settings.poolOwner %>"
 func = "createPool"
 args = [
@@ -47,8 +47,8 @@ depends=["provision.synthetix"]
 
 # Set Pool as 'Preferred'
 [invoke.setPreferredPool]
-target = ["synthetix.CoreProxy"]
-fromCall.func = "owner"
+target = ["synthetix.CoreProxy.address"]
+from = "owner"
 func = "setPreferredPool"
 args = [
     "<%= settings.poolId %>",
@@ -56,12 +56,26 @@ args = [
 depends=["invoke.createPool"]
 
 # User receives collateral token
+[invoke.mintCollateral]
+target = ["imports.collateralToken.address"]
+args = [
+    "<%= parseEther(1000000) =>",
+]
+depends=["provision.collateralToken"]
 
 # User deposits collateral token
 
+
 # User delegates to pool
 
+
 # User mints half of collateral value
+[invoke.mintStablecoins]
+target = ["imports.collateralToken.address"]
+args = [
+    "<%= parseEther(1000000) =>",
+]
+depends=["provision.collateralToken"]
 
 # Provision Spot Market
 [provision.spotMarket]
@@ -70,37 +84,31 @@ owner = "<%= settings.user %>"
 
 # Create snxTKN Synth
 [invoke.registerSynth]
-target = ["SpotMarketProxy"]
+target = ["imports.spotMarket.address"]
 func = "createSynth"
-from = "<%= settings.marketOwner %>"
-args = ["Synthetic Token", "snxTKN", "<%= settings.marketOwner %>"]
+from = "<%= settings.user %>"
+args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
 depends = ['provision.spotMarket']
 extra.synth_market_id.event = "SynthRegistered"
 extra.synth_market_id.arg = 0
 
 # Allow market to deposit TKN collateral
 
-[invoke.registerOracleNode]
-target = ["oracle_manager.Proxy"]
-func = "registerOracleNode"
-from = "<%= settings.marketOwner %>"
-# TODO: make this dynamic?
-# abi.encode(['address', 'uint256', 'uint8'], ["0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e", 0, 18]);
-args = [3, "0x000000000000000000000000d4a33860578de61dbabdc8bfdb98fd742fa7028e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012", []]
+# Initialize wrapper
 
-extra.snx_eth_oracle_id.event = "NodeRegistered"
-extra.snx_eth_oracle_id.arg = 0
-
+# Set oracle nodes for spot market price
 [invoke.updateSynthPriceData]
-target = ["SpotMarketProxy"]
+target = ["imports.spotMarket.address"]
 func = "updatePriceData"
-from = "<%= settings.marketOwner %>"
+from = "<%= settings.user %>"
 args = ["<%= extras.synth_market_id %>", "<%= extras.snx_eth_oracle_id %>", "<%= extras.snx_eth_oracle_id %>"]
+depends = ['invoke.registerSynth']
 
+# Add a settlement strategy
 [invoke.addSettlementStrategy]
-target = ["SpotMarketProxy"]
+target = ["imports.spotMarket.address"]
 func = "addSettlementStrategy"
-from = "<%= settings.marketOwner %>"
+from = "<%= settings.user %>"
 args = ["<%= extras.synth_market_id %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlink_verification_contract %>", feedId = "ETH-USD", url = "https://mercury-srv.chain.link/client" }]
+depends = ['invoke.registerSynth']
 
-# initialize wrapper
