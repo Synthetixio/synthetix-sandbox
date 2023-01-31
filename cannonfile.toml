@@ -14,6 +14,12 @@ defaultValue="spot-market:latest"
 [setting.poolId]
 defaultValue = "1"
 
+[setting.accountId]
+defaultValue = "1"
+
+[setting.chainlinkVerificationContract]
+defaultValue = "0x914490940582e818c1a9107ac2aF6f057bbe481a"
+
 # Provision collateral token
 [provision.collateralToken]
 source = "mintable-token:latest"
@@ -52,7 +58,7 @@ args = [
 depends = ["invoke.registerCollateralPriceNode", "provision.collateralToken"]
 
 # Allow user to create pools
-[invoke.allowFeatureFlag]
+[invoke.allowCreatePoolFeatureFlag]
 target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
 func = "addToFeatureFlagAllowlist"
@@ -71,7 +77,7 @@ args = [
     "<%= settings.poolId %>",
     "<%= settings.user %>"
 ]
-depends=["invoke.allowFeatureFlag"]
+depends=["invoke.allowCreatePoolFeatureFlag"]
 
 # Set pool as preferred
 [invoke.setPreferredPool]
@@ -98,7 +104,9 @@ depends=["provision.collateralToken"]
 target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
 func = "createAccount"
-args = ["1"]
+args = ["<%= settings.accountId %>"]
+extras.accountId.event = "AccountCreated"
+extras.accountId.arg = 0
 depends = ["provision.synthetix"]
 
 # User approves transfer of collateral
@@ -107,8 +115,8 @@ target = ["collateralToken.MintableToken"]
 from = "<%= settings.user %>"
 func = "approve"
 args = [
-    "<%= imports.synthetix.contracts.CoreProxy.address =>",
-    "<%= parseEther('1000000') =>",
+    "<%= imports.synthetix.contracts.CoreProxy.address %>",
+    "<%= parseEther('1000000') %>",
 ]
 depends=["provision.synthetix", "invoke.mintCollateral"]
 
@@ -118,7 +126,9 @@ target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
 func = "deposit"
 args = [
-    "<%= settings.poolId %>",
+    "<%= settings.accountId %>",
+    "<%= imports.collateralToken.contracts.MintableToken.address %>",
+    "<%= parseEther('1000000') %>",
 ]
 depends=["invoke.createAccount", "invoke.approveDeposit"]
 
@@ -128,54 +138,82 @@ target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
 func = "delegateCollateral"
 args = [
-#TBD
+    "<%= settings.accountId %>",
+    "<%= settings.poolId %>",
+    "<%= imports.collateralToken.contracts.MintableToken.address %>",
+    "<%= parseEther('1000000') %>",
+    "<%= parseEther('1') %>"
 ]
 depends=["invoke.depositCollateral"]
 
-# # User mints half of collateral value
-# [invoke.mintStablecoins]
-# target = ["imports.collateralToken.address"]
-# args = [
-#     "<%= parseEther(1000000) =>",
-# ]
-# depends=["provision.collateralToken"]
-# 
-# # Provision Spot Market
-# [provision.spotMarket]
-# source = "<%= settings.spotMarket %>"
-# options.owner = "<%= settings.user %>"
-# options.synthetixPackage = "<%= settings.synthetix %>"
-# depends = ["provision.synthetix"]
-# 
-# # Create snxTKN Synth
-# [invoke.createSynth]
-# target = ["imports.spotMarket.address"]
-# func = "createSynth"
-# from = "<%= settings.user %>"
-# args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
-# depends = ['provision.spotMarket']
-# extra.synth_market_id.event = "SynthRegistered"
-# extra.synth_market_id.arg = 0
-# 
-# # Allow market to deposit TKN collateral
-# 
-# 
-# # Initialize wrapper
+# User mints quarter of collateral value
+[invoke.mintStablecoins]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "mintUsd"
+args = [
+    "<%= settings.accountId %>",
+    "<%= settings.poolId %>",
+    "<%= imports.collateralToken.contracts.MintableToken.address %>",
+    "<%= parseEther('500000') %>"
+]
+depends=["invoke.delegateCollateral"]
 
+[invoke.allowRegisterMarketFeatureFlag]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "addToFeatureFlagAllowlist"
+args = [
+    "<%= formatBytes32String('registerMarket') %>",
+    "<%= settings.user %>",
+]
+depends=["provision.synthetix"]
+
+[provision.spotMarket]
+source = "<%= settings.spotMarket %>"
+options.coreProxyOwner = "<%= settings.user %>"
+options.owner = "<%= settings.user %>"
+options.synthetixPackage = "<%= settings.synthetix %>"
+depends = ["invoke.allowRegisterMarketFeatureFlag"]
+
+# Create snxTKN Synth
+[invoke.createSynth]
+target = ["spotMarket.SpotMarketProxy"]
+func = "createSynth"
+from = "<%= settings.user %>"
+args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
+extra.synthMarketId.event = "SynthRegistered"
+extra.synthMarketId.arg = 0
+depends = ['provision.spotMarket']
+
+# Configure market collateral supply cap, to be unlimited
+[invoke.setMarketCollateralSupplyCap]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "configureMaximumMarketCollateral"
+args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
+depends = ['invoke.createSynth', 'provision.collateralToken']
+
+# Initialize wrapper
+[invoke.initializeWrapper]
+target = ["spotMarket.SpotMarketProxy"]
+func = "setWrapper"
+from = "<%= settings.user %>"
+args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
+depends = ['invoke.setMarketCollateralSupplyCap']
 
 # Set oracle nodes for synth price
-# [invoke.updateSynthPriceData]
-# target = ["imports.spotMarket.address"]
-# func = "updatePriceData"
-# from = "<%= settings.user %>"
-# args = ["<%= extras.synth_market_id %>", "<%= extras.snx_eth_oracle_id %>", "<%= extras.snx_eth_oracle_id %>"]
-# depends = ['invoke.registerSynth']
-# 
-# # Add a settlement strategy
-# [invoke.addSettlementStrategy]
-# target = ["imports.spotMarket.address"]
-# func = "addSettlementStrategy"
-# from = "<%= settings.user %>"
-# args = ["<%= extras.synth_market_id %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlink_verification_contract %>", feedId = "ETH-USD", url = "https://mercury-srv.chain.link/client" }]
-# depends = ['invoke.registerSynth']
+[invoke.updateSynthPriceData]
+target = ["spotMarket.SpotMarketProxy"]
+func = "updatePriceData"
+from = "<%= settings.user %>"
+args = ["<%= extras.synthMarketId %>", "<%= extras.tkn_oracle_id %>", "<%= extras.tkn_oracle_id %>"]
+depends = ['invoke.createSynth', 'invoke.registerCollateralPriceNode']
 
+# Add a settlement strategy
+[invoke.addChainlinkSettlementStrategy]
+target = ["spotMarket.SpotMarketProxy"]
+func = "addSettlementStrategy"
+from = "<%= settings.user %>"
+args = ["<%= extras.synthMarketId %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlinkVerificationContract %>", feedId = "<%= formatBytes32String('ETH-USD') %>", url = "https://mercury-srv.chain.link/client" }]
+depends = ['invoke.updateSynthPriceData']
