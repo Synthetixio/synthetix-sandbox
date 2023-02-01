@@ -159,22 +159,12 @@ args = [
 ]
 depends=["invoke.delegateCollateral"]
 
-[invoke.allowRegisterMarketFeatureFlag]
-target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
-func = "addToFeatureFlagAllowlist"
-args = [
-    "<%= formatBytes32String('registerMarket') %>",
-    "<%= settings.user %>",
-]
-depends=["provision.synthetix"]
-
+# Provision the spot market factory
 [provision.spotMarket]
 source = "<%= settings.spotMarket %>"
 options.coreProxyOwner = "<%= settings.user %>"
 options.owner = "<%= settings.user %>"
 options.synthetixPackage = "<%= settings.synthetix %>"
-depends = ["invoke.allowRegisterMarketFeatureFlag"]
 
 # Create snxTKN Synth
 [invoke.createSynth]
@@ -184,9 +174,9 @@ from = "<%= settings.user %>"
 args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
 extra.synthMarketId.event = "SynthRegistered"
 extra.synthMarketId.arg = 0
-depends = ['provision.spotMarket']
+depends = ["provision.synthetix", "provision.spotMarket"]
 
-# Configure market collateral supply cap, to be unlimited
+# Allow snxTKN market to deposit unlimited TKN for wrappers
 [invoke.setMarketCollateralSupplyCap]
 target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
@@ -194,7 +184,7 @@ func = "configureMaximumMarketCollateral"
 args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
 depends = ['invoke.createSynth', 'provision.collateralToken']
 
-# Initialize wrapper
+# Initialize wrapper functionality on snxTKN market with an unlimited cap
 [invoke.initializeWrapper]
 target = ["spotMarket.SpotMarketProxy"]
 func = "setWrapper"
@@ -202,7 +192,7 @@ from = "<%= settings.user %>"
 args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
 depends = ['invoke.setMarketCollateralSupplyCap']
 
-# Set oracle nodes for synth price
+# Set oracle nodes for snxTKN price
 [invoke.updateSynthPriceData]
 target = ["spotMarket.SpotMarketProxy"]
 func = "updatePriceData"
@@ -210,7 +200,7 @@ from = "<%= settings.user %>"
 args = ["<%= extras.synthMarketId %>", "<%= extras.tkn_oracle_id %>", "<%= extras.tkn_oracle_id %>"]
 depends = ['invoke.createSynth', 'invoke.registerCollateralPriceNode']
 
-# Add a settlement strategy
+# Add a Chainlink settlement strategy to snxTKN market
 [invoke.addChainlinkSettlementStrategy]
 target = ["spotMarket.SpotMarketProxy"]
 func = "addSettlementStrategy"
