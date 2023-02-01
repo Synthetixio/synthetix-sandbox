@@ -27,12 +27,12 @@ source = "mintable-token:latest"
 # Provision Chainlink mock for collateral token ($2)
 [provision.collateralChainlinkMock]
 source = "chainlink-mock-v3-aggregator:latest"
-initialAnswer = "2000000000000000000"
+options.initialAnswer = "2000000000000000000"
 
 # Provision Synthetix core and oracle manager
 [provision.synthetix]
 source = "<%= settings.synthetix %>"
-owner = "<%= settings.user %>"
+options.owner = "<%= settings.user %>"
 
 # Register oracle manager node for collateral token
 [invoke.registerCollateralPriceNode]
@@ -175,6 +175,14 @@ args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
 extra.synthMarketId.event = "SynthRegistered"
 extra.synthMarketId.arg = 0
 depends = ["provision.synthetix", "provision.spotMarket"]
+
+# Add a 1% fixed feed on atomic exchanges
+[invoke.addAtomicFixedFee]
+target = ["spotMarket.SpotMarketProxy"]
+func = "setAtomicFixedFee"
+from = "<%= settings.user %>"
+args = ["<%= extras.synthMarketId %>", "<%= parseEther('0.01') %>"]
+depends = ['invoke.createSynth']
 
 # Allow snxTKN market to deposit unlimited TKN for wrappers
 [invoke.setMarketCollateralSupplyCap]
