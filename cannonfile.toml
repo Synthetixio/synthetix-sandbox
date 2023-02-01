@@ -215,3 +215,12 @@ func = "addSettlementStrategy"
 from = "<%= settings.user %>"
 args = ["<%= extras.synthMarketId %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlinkVerificationContract %>", feedId = "<%= formatBytes32String('ETH-USD') %>", url = "https://mercury-srv.chain.link/client" }]
 depends = ['invoke.updateSynthPriceData']
+
+# Deploy the sample integration
+[contract.SampleIntegration]
+artifact = "SampleIntegration"
+args = [
+    "<%= imports.synthetix.contracts.CoreProxy.address %>",
+    "<%= imports.synthetix.contracts.USDProxy.address %>"
+]
+depends = ["provision.synthetix"]
