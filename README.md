@@ -1,9 +1,22 @@
 # Synthetix Sandbox
 
-This repository serves as a starting point for developing front-ends and integrations for [Synthetix V3](https://github.com/Synthetixio/synthetix-v3).
+This repository serves as a starting point for developing front-ends and smart contract integrations for [Synthetix V3](https://github.com/Synthetixio/synthetix-v3).
 
-Run `npx @usecannon/cli synthetix-sandbox` for a local node as defined in the [Cannonfile](/cannonfile.toml) for front-end development. To customize the configuration, fork this repository, customize the name at the top of the package and make other modifications, run `npx @usecannon/cli build`, and then `npx @usecannon/cli <name>`.
+Install [Cannon](https://usecannon.com) with `npm i -g @usecannon/cli` an review the [Get Started guide](https://usecannon.com/get-started).
 
 **Remember to always interact with the proxy contracts instead of the router or modules directly.**
 
-You can use the [Sample Integration](/src/SampleIntegration.sol) as a starting point for building a smart contract integration. Use the [Production Cannonfile](/cannonfile.prod.toml) to deploy the sample integration for use with the official [Synthetix V3 Deployments](https://github.com/Synthetixio/synthetix-deployments).
+## Developing Front-ends
+
+* Run `cannon synthetix-sandbox` to start a local node as defined in the [Cannonfile](/cannonfile.toml) for front-end development
+* Run `cannon inspect synthetix-sandbox --write-deployments ./deployments` to export the smart contract ABIs and addresses
+
+## Developing Smart Contract Integrations
+
+* Fork this repository
+* Modify the [Sample Integration contract](/src/SampleIntegration.sol)
+* Customize the name at the top of `cannonfile.toml` and make any other modifications
+* Run `cannon build` 
+* Run `cannon <replace-with-new-cannonfile-name>`
+
+See the [Production Cannonfile](/cannonfile.prod.toml) for an example Cannonfile that deploys the Sample Integration contract integrated with the official [Synthetix V3 Deployments](https://github.com/Synthetixio/synthetix-deployments).
