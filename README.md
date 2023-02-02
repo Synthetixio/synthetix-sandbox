@@ -16,7 +16,7 @@ Install [Cannon](https://usecannon.com) with `npm i -g @usecannon/cli` an review
 * Fork this repository
 * Modify the [Sample Integration contract](/src/SampleIntegration.sol)
 * Customize the name at the top of `cannonfile.toml` and make any other modifications
-* Run `cannon build` 
-* Run `cannon <replace-with-new-cannonfile-name>`
+* Run `cannon build` to create a local build of your Cannonfile.
+* Run `cannon <replace-with-new-cannonfile-name>` to start it on a local node.
 
 See the [Production Cannonfile](/cannonfile.prod.toml) for an example Cannonfile that deploys the Sample Integration contract integrated with the official [Synthetix V3 Deployments](https://github.com/Synthetixio/synthetix-deployments).
