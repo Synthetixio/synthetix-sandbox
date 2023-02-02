@@ -1,5 +1,5 @@
 name = "synthetix-sandbox"
-version = "0.2"
+version = "0.3"
 description = "Synthetix Sandbox"
 
 [setting.user]
@@ -16,9 +16,6 @@ defaultValue = "1"
 
 [setting.accountId]
 defaultValue = "1"
-
-[setting.chainlinkVerificationContract]
-defaultValue = "0x914490940582e818c1a9107ac2aF6f057bbe481a"
 
 # Provision collateral token
 [provision.collateralToken]
@@ -176,6 +173,14 @@ extra.synthMarketId.event = "SynthRegistered"
 extra.synthMarketId.arg = 0
 depends = ["provision.synthetix", "provision.spotMarket"]
 
+# Set oracle nodes for snxTKN price
+[invoke.updateSynthPriceData]
+target = ["spotMarket.SpotMarketProxy"]
+func = "updatePriceData"
+from = "<%= settings.user %>"
+args = ["<%= extras.synthMarketId %>", "<%= extras.tkn_oracle_id %>", "<%= extras.tkn_oracle_id %>"]
+depends = ['invoke.createSynth', 'invoke.registerCollateralPriceNode']
+
 # Add a 1% fixed feed on atomic exchanges
 [invoke.addAtomicFixedFee]
 target = ["spotMarket.SpotMarketProxy"]
@@ -199,22 +204,6 @@ func = "setWrapper"
 from = "<%= settings.user %>"
 args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
 depends = ['invoke.setMarketCollateralSupplyCap']
-
-# Set oracle nodes for snxTKN price
-[invoke.updateSynthPriceData]
-target = ["spotMarket.SpotMarketProxy"]
-func = "updatePriceData"
-from = "<%= settings.user %>"
-args = ["<%= extras.synthMarketId %>", "<%= extras.tkn_oracle_id %>", "<%= extras.tkn_oracle_id %>"]
-depends = ['invoke.createSynth', 'invoke.registerCollateralPriceNode']
-
-# Add a Chainlink settlement strategy to snxTKN market
-[invoke.addChainlinkSettlementStrategy]
-target = ["spotMarket.SpotMarketProxy"]
-func = "addSettlementStrategy"
-from = "<%= settings.user %>"
-args = ["<%= extras.synthMarketId %>", { strategyType = 1, settlementDelay = 1, settlementWindowDuration = 120, priceVerificationContract = "<%= settings.chainlinkVerificationContract %>", feedId = "<%= formatBytes32String('ETH-USD') %>", url = "https://mercury-srv.chain.link/client" }]
-depends = ['invoke.updateSynthPriceData']
 
 # Deploy the sample integration
 [contract.SampleIntegration]
