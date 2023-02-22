@@ -1,5 +1,5 @@
 name = "synthetix-sample-integration"
-version = "3.0.0-alpha.12"
+version = "3.0.0"
 description = "Synthetix Sample Integration"
 
 [import.synthetixOmnibus]
