@@ -234,6 +234,17 @@ extra.perpsMarketId.event = "MarketRegistered"
 extra.perpsMarketId.arg = 0
 depends = ["provision.synthetix", "provision.perpsMarket"]
 
+# Allow anyone to create a perps account
+[invoke.allowCreatePerpsAccount]
+target = ["perpsMarket.PerpsMarketProxy"]
+from = "<%= settings.user %>"
+func = "setFeatureFlagAllowAll"
+args = [
+    "<%= formatBytes32String('createAccount') %>",
+    true
+]
+depends=["provision.perpsMarket"]
+
 # Set Pool Configuration
 [invoke.setPoolConfiguration]
 target = ["synthetix.CoreProxy"]
@@ -246,4 +257,4 @@ args = [
         { marketId = "<%= extras.synthMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "1000000000000000000" },
     ]
 ]
-depends=["invoke.updateSynthPriceData","invoke.createPerpsMarket"]
+depends=["invoke.createPool", "invoke.updateSynthPriceData","invoke.createPerpsMarket"]
