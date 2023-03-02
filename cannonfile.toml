@@ -6,10 +6,13 @@ description = "Synthetix Sandbox"
 defaultValue="0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
 
 [setting.synthetix]
-defaultValue="synthetix:latest"
+defaultValue="synthetix:3.0.1"
 
 [setting.spotMarket]
 defaultValue="synthetix-spot-market:latest"
+
+[setting.perpsMarket]
+defaultValue="synthetix-perps-market:latest"
 
 [setting.poolId]
 defaultValue = "1"
@@ -213,11 +216,34 @@ from = "<%= settings.user %>"
 args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
 depends = ['invoke.setMarketCollateralSupplyCap']
 
-# Deploy the sample integration
-[contract.SampleIntegration]
-artifact = "SampleIntegration"
+# Provision the perps market factory
+[provision.perpsMarket]
+source = "<%= settings.perpsMarket %>"
+options.coreProxyOwner = "<%= settings.user %>"
+options.owner = "<%= settings.user %>"
+options.synthetixPackage = "<%= settings.synthetix %>"
+options.spotMarketPackage = "<%= settings.spotMarket %>"
+
+# Create ETH Perp
+[invoke.createPerpsMarket]
+target = ["perpsMarket.PerpsMarketProxy"]
+func = "createMarket"
+from = "<%= settings.user %>"
+args = ["Ethereum", "ETH", "<%= settings.user %>"]
+extra.perpsMarketId.event = "MarketRegistered"
+extra.perpsMarketId.arg = 0
+depends = ["provision.synthetix", "provision.perpsMarket"]
+
+# Set Pool Configuration
+[invoke.setPoolConfiguration]
+target = ["synthetix.CoreProxy"]
+from = "<%= settings.user %>"
+func = "setPoolConfiguration"
 args = [
-    "<%= imports.synthetix.contracts.CoreProxy.address %>",
-    "<%= imports.synthetix.contracts.USDProxy.address %>"
+    "<%= settings.poolId %>",
+    [
+        { marketId = "<%= extras.perpsMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "1000000000000000000" },
+        { marketId = "<%= extras.synthMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "1000000000000000000" },
+    ]
 ]
-depends = ["provision.synthetix"]
+depends=["invoke.updateSynthPriceData","invoke.createPerpsMarket"]
