@@ -11,8 +11,8 @@ defaultValue="synthetix:latest"
 [setting.spotMarket]
 defaultValue="synthetix-spot-market:latest"
 
-[setting.perpsMarket]
-defaultValue="synthetix-perps-market:latest"
+#[setting.perpsMarket]
+#defaultValue="synthetix-perps-market:latest"
 
 [setting.poolId]
 defaultValue = "1"
@@ -27,7 +27,7 @@ source = "mintable-token:latest"
 # Provision Chainlink mock for collateral token ($2)
 [provision.collateralChainlinkMock]
 source = "chainlink-mock-v3-aggregator:latest"
-options.initialAnswer = "2000000000000000000"
+options.initialAnswer = "<% formatEther('2') %>"
 
 # Provision Synthetix core and oracle manager
 [provision.synthetix]
@@ -57,16 +57,28 @@ args = [
 ]
 depends = ["invoke.registerCollateralPriceNode", "provision.collateralToken"]
 
-# Allow user to create pools
-[invoke.allowCreatePoolFeatureFlag]
+[invoke.allowAllRegisterMarket]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
-func = "addToFeatureFlagAllowlist"
+fromCall.func = "owner"
+func = "setFeatureFlagAllowAll"
 args = [
-    "<%= formatBytes32String('createPool') %>",
-    "<%= settings.user %>",
+  "<%= formatBytes32String('registerMarket') %>",
+  true
 ]
-depends=["provision.synthetix"]
+
+depends = ["provision.synthetix"]
+
+
+[invoke.allowAllCreatePool]
+target = ["synthetix.CoreProxy"]
+fromCall.func = "owner"
+func = "setFeatureFlagAllowAll"
+args = [
+  "<%= formatBytes32String('createPool') %>",
+  true
+]
+
+depends = ["provision.synthetix"]
 
 # Create pool
 [invoke.createPool]
@@ -77,7 +89,7 @@ args = [
     "<%= settings.poolId %>",
     "<%= settings.user %>"
 ]
-depends=["invoke.allowCreatePoolFeatureFlag"]
+depends=["invoke.allowAllCreatePool"]
 
 # Set pool as preferred
 [invoke.setPreferredPool]
@@ -94,7 +106,7 @@ depends=["invoke.createPool"]
 target = ["collateralToken.MintableToken"]
 func = "mint"
 args = [
-    "<%= parseEther('1000000') %>",
+    "<%= parseEther('100000000') %>",
     "<%= settings.user %>"
 ]
 depends=["provision.collateralToken"]
@@ -103,7 +115,7 @@ depends=["provision.collateralToken"]
 [invoke.createAccount]
 target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
-func = "createAccount"
+func = "createAccount(uint128)"
 args = ["<%= settings.accountId %>"]
 extras.accountId.event = "AccountCreated"
 extras.accountId.arg = 0
@@ -116,7 +128,7 @@ from = "<%= settings.user %>"
 func = "approve"
 args = [
     "<%= imports.synthetix.contracts.CoreProxy.address %>",
-    "<%= parseEther('1000000') %>",
+    "<%= parseEther('100000000') %>",
 ]
 depends=["provision.synthetix", "invoke.mintCollateral"]
 
@@ -128,7 +140,7 @@ func = "deposit"
 args = [
     "<%= settings.accountId %>",
     "<%= imports.collateralToken.contracts.MintableToken.address %>",
-    "<%= parseEther('1000000') %>",
+    "<%= parseEther('100000000') %>",
 ]
 depends=["invoke.createAccount", "invoke.approveDeposit"]
 
@@ -141,7 +153,7 @@ args = [
     "<%= settings.accountId %>",
     "<%= settings.poolId %>",
     "<%= imports.collateralToken.contracts.MintableToken.address %>",
-    "<%= parseEther('1000000') %>",
+    "<%= parseEther('100000000') %>",
     "<%= parseEther('1') %>"
 ]
 depends=["invoke.depositCollateral"]
@@ -174,6 +186,8 @@ options.coreProxyOwner = "<%= settings.user %>"
 options.owner = "<%= settings.user %>"
 options.synthetixPackage = "<%= settings.synthetix %>"
 
+depends = ["provision.synthetix"]
+
 # Create snxTKN Synth
 [invoke.createSynth]
 target = ["spotMarket.SpotMarketProxy"]
@@ -182,7 +196,7 @@ from = "<%= settings.user %>"
 args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
 extra.synthMarketId.event = "SynthRegistered"
 extra.synthMarketId.arg = 0
-depends = ["provision.synthetix", "provision.spotMarket"]
+depends = ["provision.spotMarket"]
 
 # Set oracle nodes for snxTKN price
 [invoke.updateSynthPriceData]
@@ -217,33 +231,35 @@ args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.Mi
 depends = ['invoke.setMarketCollateralSupplyCap']
 
 # Provision the perps market factory
-[provision.perpsMarket]
-source = "<%= settings.perpsMarket %>"
-options.coreProxyOwner = "<%= settings.user %>"
-options.owner = "<%= settings.user %>"
-options.synthetixPackage = "<%= settings.synthetix %>"
-options.spotMarketPackage = "<%= settings.spotMarket %>"
+#[provision.perpsMarket]
+#source = "<%= settings.perpsMarket %>"
+#options.coreProxyOwner = "<%= settings.user %>"
+#options.owner = "<%= settings.user %>"
+#options.synthetixPackage = "<%= settings.synthetix %>"
+#options.spotMarketPackage = "<%= settings.spotMarket %>"
+
+#depends = ["provision.spotMarket"]
 
 # Create ETH Perp
-[invoke.createPerpsMarket]
-target = ["perpsMarket.PerpsMarketProxy"]
-func = "createMarket"
-from = "<%= settings.user %>"
-args = ["Ethereum", "ETH", "<%= settings.user %>"]
-extra.perpsMarketId.event = "MarketRegistered"
-extra.perpsMarketId.arg = 0
-depends = ["provision.synthetix", "provision.perpsMarket"]
+#[invoke.createPerpsMarket]
+#target = ["perpsMarket.PerpsMarketProxy"]
+#func = "createMarket"
+#from = "<%= settings.user %>"
+#args = ["Ethereum", "ETH", "<%= settings.user %>"]
+#extra.perpsMarketId.event = "MarketRegistered"
+#extra.perpsMarketId.arg = 0
+#depends = ["provision.perpsMarket"]
 
 # Allow anyone to create a perps account
-[invoke.allowCreatePerpsAccount]
-target = ["perpsMarket.PerpsMarketProxy"]
-from = "<%= settings.user %>"
-func = "setFeatureFlagAllowAll"
-args = [
-    "<%= formatBytes32String('createAccount') %>",
-    true
-]
-depends=["provision.perpsMarket"]
+#[invoke.allowCreatePerpsAccount]
+#target = ["perpsMarket.PerpsMarketProxy"]
+#from = "<%= settings.user %>"
+#func = "setFeatureFlagAllowAll"
+#args = [
+#    "<%= formatBytes32String('createAccount') %>",
+#    true
+#]
+#depends=["provision.perpsMarket"]
 
 # Set Pool Configuration
 [invoke.setPoolConfiguration]
@@ -253,8 +269,7 @@ func = "setPoolConfiguration"
 args = [
     "<%= settings.poolId %>",
     [
-        { marketId = "<%= extras.perpsMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "1000000000000000000" },
         { marketId = "<%= extras.synthMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "1000000000000000000" },
     ]
 ]
-depends=["invoke.createPool", "invoke.updateSynthPriceData","invoke.createPerpsMarket"]
+depends=["invoke.createPool", "invoke.updateSynthPriceData"]
