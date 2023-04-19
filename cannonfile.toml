@@ -1,5 +1,5 @@
 name = "synthetix-sandbox"
-version = "3.1.0"
+version = "3.1.0-alpha.0"
 description = "Synthetix Sandbox"
 
 [setting.user]
@@ -103,7 +103,7 @@ depends=["provision.collateralToken"]
 [invoke.createAccount]
 target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
-func = "createAccount"
+func = "createAccount(uint128)"
 args = ["<%= settings.accountId %>"]
 extras.accountId.event = "AccountCreated"
 extras.accountId.arg = 0
@@ -163,7 +163,7 @@ depends=["invoke.delegateCollateral"]
 [invoke.setMinimumLiquidityRatio]
 target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
-func = "setMinLiquidityRatio"
+func = "setMinLiquidityRatio(uint256)"
 args = ["<%= parseEther('2') %>"]
 depends = ["provision.synthetix"]
 
