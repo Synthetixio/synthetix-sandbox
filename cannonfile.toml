@@ -175,7 +175,7 @@ depends=["invoke.delegateCollateral"]
 [invoke.setMinimumLiquidityRatio]
 target = ["synthetix.CoreProxy"]
 from = "<%= settings.user %>"
-func = "setMinLiquidityRatio"
+func = "setMinLiquidityRatio(uint256)"
 args = ["<%= parseEther('2') %>"]
 depends = ["provision.synthetix"]
 
