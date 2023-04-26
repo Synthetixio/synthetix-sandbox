@@ -1,5 +1,5 @@
 name = "synthetix-sandbox"
-version = "3.1.0"
+version = "3.1.0-alpha.3"
 description = "Synthetix Sandbox"
 
 [setting.user]
@@ -11,8 +11,8 @@ defaultValue="synthetix:latest"
 [setting.spotMarket]
 defaultValue="synthetix-spot-market:latest"
 
-#[setting.perpsMarket]
-#defaultValue="synthetix-perps-market:latest"
+[setting.perpsMarket]
+defaultValue="synthetix-perps-market:latest"
 
 [setting.poolId]
 defaultValue = "1"
@@ -67,7 +67,6 @@ args = [
 ]
 
 depends = ["provision.synthetix"]
-
 
 [invoke.allowAllCreatePool]
 target = ["synthetix.CoreProxy"]
@@ -230,37 +229,6 @@ from = "<%= settings.user %>"
 args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
 depends = ['invoke.setMarketCollateralSupplyCap']
 
-# Provision the perps market factory
-#[provision.perpsMarket]
-#source = "<%= settings.perpsMarket %>"
-#options.coreProxyOwner = "<%= settings.user %>"
-#options.owner = "<%= settings.user %>"
-#options.synthetixPackage = "<%= settings.synthetix %>"
-#options.spotMarketPackage = "<%= settings.spotMarket %>"
-
-#depends = ["provision.spotMarket"]
-
-# Create ETH Perp
-#[invoke.createPerpsMarket]
-#target = ["perpsMarket.PerpsMarketProxy"]
-#func = "createMarket"
-#from = "<%= settings.user %>"
-#args = ["Ethereum", "ETH", "<%= settings.user %>"]
-#extra.perpsMarketId.event = "MarketRegistered"
-#extra.perpsMarketId.arg = 0
-#depends = ["provision.perpsMarket"]
-
-# Allow anyone to create a perps account
-#[invoke.allowCreatePerpsAccount]
-#target = ["perpsMarket.PerpsMarketProxy"]
-#from = "<%= settings.user %>"
-#func = "setFeatureFlagAllowAll"
-#args = [
-#    "<%= formatBytes32String('createAccount') %>",
-#    true
-#]
-#depends=["provision.perpsMarket"]
-
 # Set Pool Configuration
 [invoke.setPoolConfiguration]
 target = ["synthetix.CoreProxy"]
@@ -273,3 +241,61 @@ args = [
     ]
 ]
 depends=["invoke.createPool", "invoke.updateSynthPriceData"]
+
+# Provision the perps market factory
+[provision.perpsMarket]
+source = "<%= settings.perpsMarket %>"
+options.coreProxyOwner = "<%= settings.user %>"
+options.owner = "<%= settings.user %>"
+options.synthetixPackage = "<%= settings.synthetix %>"
+options.spotMarketPackage = "<%= settings.spotMarket %>"
+
+depends = ["provision.spotMarket"]
+
+# Allow anyone to create a perps market
+[invoke.allowAllCreatePerpsMarket]
+target = ["perpsMarket.PerpsMarketProxy"]
+fromCall.func = "owner"
+func = "setFeatureFlagAllowAll"
+args = [
+  "<%= formatBytes32String('createMarket') %>",
+  true
+]
+depends=["provision.perpsMarket"]
+
+# Allow anyone to create a perps account
+[invoke.allowCreatePerpsAccount]
+target = ["perpsMarket.PerpsMarketProxy"]
+fromCall.func = "owner"
+func = "setFeatureFlagAllowAll"
+args = [
+    "<%= formatBytes32String('createAccount') %>",
+    true
+]
+depends = ["provision.perpsMarket"]
+
+# Create ETH Perp Market
+[invoke.createPerpsMarket]
+target = ["perpsMarket.PerpsMarketProxy"]
+func = "createMarket"
+from = "<%= settings.user %>"
+args = ["Ethereum", "ETH", "<%= settings.user %>"]
+extra.perpsMarketId.event = "MarketRegistered"
+extra.perpsMarketId.arg = 0
+depends = ["invoke.allowCreatePerpsAccount"]
+
+# Update Price Feed for ETH Perp Market
+[invoke.updatePriceFeed]
+target = ["perpsMarket.PerpsMarketProxy"]
+func = "updatePriceData"
+from = "<%= settings.user %>"
+args = ["<%= extras.perpsMarketId %>", "<%= extras.tkn_oracle_id %>"]
+depends = ["invoke.registerCollateralPriceNode", "provision.collateralToken", "invoke.createPerpsMarket"]
+
+# Set max collateral amount for synth
+[invoke.setMaxCollateralAmount]
+target = ["perpsMarket.PerpsMarketProxy"]
+func = "setMaxCollateralAmount"
+from = "<%= settings.user %>"
+args = ["0", "<%= MaxUint256 %>"]
+depends = ["provision.perpsMarket"]
