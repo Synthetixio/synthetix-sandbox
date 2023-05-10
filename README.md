@@ -16,7 +16,7 @@ Install [Cannon](https://usecannon.com) with `npm i -g @usecannon/cli` and revie
 * Fork this repository.
 * Modify the [Sample Integration contract](/src/SampleIntegration.sol).
 * Customize the name at the top of `cannonfile.toml` and make any other modifications.
-* Make sure you have the Synthetix Router Cannon plug-in installed: `npx cannon plugin add @synthetixio/router`
+* Make sure you have the Synthetix Router Cannon plug-in installed: `npx cannon plugin add cannon-plugin-router`
 * Run `cannon build` to create a local build of your Cannonfile.
 * Run `cannon <replace-with-new-cannonfile-name>` to start it on a local node.
 
