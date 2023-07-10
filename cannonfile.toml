@@ -68,7 +68,6 @@ args = [
   "<%= formatBytes32String('registerMarket') %>",
   true
 ]
-
 depends = ["provision.synthetix"]
 
 [invoke.allowAllCreatePool]
@@ -79,7 +78,6 @@ args = [
   "<%= formatBytes32String('createPool') %>",
   true
 ]
-
 depends = ["provision.synthetix"]
 
 # Create pool
@@ -187,7 +185,6 @@ source = "<%= settings.spotMarket %>"
 options.coreProxyOwner = "<%= settings.user %>"
 options.owner = "<%= settings.user %>"
 options.synthetixPackage = "<%= settings.synthetix %>"
-
 depends = ["provision.synthetix"]
 
 # Create snxTKN Synth
@@ -240,7 +237,7 @@ func = "setPoolConfiguration"
 args = [
     "<%= settings.poolId %>",
     [
-        { marketId = "<%= extras.synthMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "1000000000000000000" },
+        { marketId = "<%= extras.synthMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "<%= parseEther('2') %>" },
     ]
 ]
 depends=["invoke.createPool", "invoke.updateSynthPriceData"]
