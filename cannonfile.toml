@@ -27,7 +27,7 @@ source = "mintable-token:latest"
 # Provision Chainlink mock for collateral token ($2)
 [provision.collateralChainlinkMock]
 source = "chainlink-mock-v3-aggregator:latest"
-options.initialAnswer = "<%= formatEther('2') %>"
+options.initialAnswer = "<%= parseEther('2') %>"
 
 # Provision Synthetix core and oracle manager
 [provision.synthetix]
