@@ -20,6 +20,9 @@ defaultValue = "1"
 [setting.accountId]
 defaultValue = "1"
 
+[import.Multicall]
+source = "multicall:latest"
+
 # Provision collateral token
 [provision.collateralToken]
 source = "mintable-token:latest"
