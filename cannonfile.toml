@@ -5,6 +5,9 @@ description = "Synthetix Sandbox"
 [setting.user]
 defaultValue="0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
 
+[setting.ethPerpMarketId]
+defaultValue="100"
+
 [setting.synthetix]
 defaultValue="synthetix:latest"
 
@@ -279,8 +282,8 @@ depends = ["provision.perpsMarket"]
 target = ["perpsMarket.PerpsMarketProxy"]
 func = "createMarket"
 from = "<%= settings.user %>"
-args = ["Ethereum", "ETH", "<%= settings.user %>"]
-extra.perpsMarketId.event = "MarketRegistered"
+args = ["<%= settings.ethPerpMarketId %>", "ETH", "<%= settings.user %>"]
+extra.perpsMarketId.event = "MarketCreated"
 extra.perpsMarketId.arg = 0
 depends = ["invoke.allowCreatePerpsAccount"]
 
