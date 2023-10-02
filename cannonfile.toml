@@ -5,7 +5,7 @@ description = "Synthetix Sandbox"
 [setting.user]
 defaultValue="0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
 
-[setting.ethPerpsMarketId]
+[setting.perpsMarketId]
 defaultValue="100"
 
 [setting.synthetix]
@@ -266,12 +266,12 @@ args = [
     true
 ]
 
-# Create and configure ETH Perp Market
+# Create and configure Perp Market
 [invoke.createPerpsMarket]
 target = ["perpsMarket.PerpsMarketProxy"]
 func = "createMarket"
 from = "<%= settings.user %>"
-args = ["<%= settings.ethPerpsMarketId %>", "perpTKN", "<%= settings.user %>"]
+args = ["<%= settings.perpsMarketId %>", "perpTKN", "<%= settings.user %>"]
 depends = ["invoke.allowCreatePerpsAccount"]
 
 # See https://github.com/Synthetixio/synthetix-deployments/tree/main/tomls/markets/perps for examples of how to configure perps
