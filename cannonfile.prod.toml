@@ -1,9 +1,9 @@
 name = "synthetix-sample-integration"
-version = "3.1.2"
+version = "3.3.4"
 description = "Synthetix Sample Integration"
 
 [import.synthetixOmnibus]
-source ="synthetix-omnibus:latest"
+source ="synthetix-omnibus:3.3.4"
 
 [contract.sample_integration]
 artifact = "SampleIntegration"
