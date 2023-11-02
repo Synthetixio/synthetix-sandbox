@@ -1,0 +1,8 @@
+{
+  "packageManager": "yarn@4.0.1",
+  "devDependencies": {
+    "@usecannon/cli": "^2.9.3",
+    "chalk": "^4.0.0",
+    "solc": "^0.8.22"
+  }
+}
