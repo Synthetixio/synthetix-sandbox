@@ -8,6 +8,9 @@ defaultValue="0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
 [setting.perpsMarketId]
 defaultValue="100"
 
+[setting.salt]
+defaultValue="sandbox"
+
 [setting.synthetix]
 defaultValue="synthetix:3.3.4"
 
@@ -26,16 +29,20 @@ defaultValue = "1"
 # Provision collateral token
 [provision.collateralToken]
 source = "mintable-token"
+options.salt = "<%= settings.salt %>"
 options.owner = "<%= settings.user %>"
 
 # Provision Chainlink mock for collateral token ($2)
 [provision.collateralChainlinkMock]
 source = "chainlink-mock-v3-aggregator"
+options.salt = "<%= settings.salt %>"
 options.initialAnswer = "<%= parseEther('2') %>"
 
 # Provision Synthetix core and oracle manager
 [provision.synthetix]
 source = "<%= settings.synthetix %>"
+targetPreset = "sandbox"
+options.salt = "<%= settings.salt %>"
 options.owner = "<%= settings.user %>"
 
 # Register oracle manager node for collateral token
@@ -179,9 +186,11 @@ args = ["<%= parseEther('2') %>"]
 # Provision the spot market factory
 [provision.spotMarket]
 source = "<%= settings.spotMarket %>"
+options.salt = "<%= settings.salt %>"
 options.coreProxyOwner = "<%= settings.user %>"
 options.owner = "<%= settings.user %>"
 options.synthetixPackage = "<%= settings.synthetix %>"
+options.synthetixPreset = "sandbox"
 
 # Create snxTKN Synth
 [invoke.createSynth]
@@ -235,7 +244,7 @@ args = [
         { marketId = "<%= extras.synthMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "<%= parseEther('2') %>" },
     ]
 ]
-depends=["invoke.createPool", "invoke.updateSynthPriceData"]
+#depends=["invoke.createPool", "invoke.updateSynthPriceData"]
 
 # Provision the perps market factory
 [provision.perpsMarket]
