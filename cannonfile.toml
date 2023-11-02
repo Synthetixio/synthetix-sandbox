@@ -41,6 +41,7 @@ options.initialAnswer = "<%= parseEther('2') %>"
 # Provision Synthetix core and oracle manager
 [provision.synthetix]
 source = "<%= settings.synthetix %>"
+targetPreset = "sandbox"
 options.salt = "<%= settings.salt %>"
 options.owner = "<%= settings.user %>"
 
@@ -189,6 +190,7 @@ options.salt = "<%= settings.salt %>"
 options.coreProxyOwner = "<%= settings.user %>"
 options.owner = "<%= settings.user %>"
 options.synthetixPackage = "<%= settings.synthetix %>"
+options.synthetixPreset = "sandbox"
 
 # Create snxTKN Synth
 [invoke.createSynth]
@@ -242,7 +244,7 @@ args = [
         { marketId = "<%= extras.synthMarketId %>", weightD18 = "1", maxDebtShareValueD18 = "<%= parseEther('2') %>" },
     ]
 ]
-depends=["invoke.createPool", "invoke.updateSynthPriceData"]
+#depends=["invoke.createPool", "invoke.updateSynthPriceData"]
 
 # Provision the perps market factory
 [provision.perpsMarket]
