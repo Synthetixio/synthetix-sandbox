@@ -1,21 +1,21 @@
 name = "synthetix-sandbox"
-version = "3.3.4"
+version = "3.3.18"
 description = "Synthetix Sandbox"
 
-[setting.user]
+[setting.owner]
 defaultValue="0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
 
 [setting.perpsMarketId]
 defaultValue="100"
 
 [setting.synthetix]
-defaultValue="synthetix:3.3.4"
+defaultValue="synthetix:3.3.18"
 
 [setting.spotMarket]
-defaultValue="synthetix-spot-market:3.3.4"
+defaultValue="synthetix-spot-market:3.3.15"
 
 [setting.perpsMarket]
-defaultValue="synthetix-perps-market:3.3.4"
+defaultValue="synthetix-perps-market:3.3.19"
 
 [setting.poolId]
 defaultValue = "1"
@@ -26,7 +26,7 @@ defaultValue = "1"
 # Provision collateral token
 [provision.collateralToken]
 source = "mintable-token"
-options.owner = "<%= settings.user %>"
+options.salt = "<%= settings.salt %>"
 
 # Provision Chainlink mock for collateral token ($2)
 [provision.collateralChainlinkMock]
@@ -36,7 +36,7 @@ options.initialAnswer = "<%= parseEther('2') %>"
 # Provision Synthetix core and oracle manager
 [provision.synthetix]
 source = "<%= settings.synthetix %>"
-options.owner = "<%= settings.user %>"
+options.owner = "<%= settings.owner %>"
 
 # Register oracle manager node for collateral token
 [invoke.registerCollateralPriceNode]
@@ -54,7 +54,7 @@ depends = ["provision.synthetix", "provision.collateralChainlinkMock"]
 # Configure collateral token as collateral for core
 [invoke.configureTknCollateral]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "configureCollateral"
 args = [
   { tokenAddress = "<%= imports.collateralToken.contracts.MintableToken.address %>", oracleNodeId = "<%= extras.tkn_oracle_id %>", issuanceRatioD18 = "<%= parseEther('2') %>", liquidationRatioD18 = "<%= parseEther('1.5') %>", liquidationRewardD18 = "<%= parseEther('1') %>", minDelegationD18 = "<%= parseEther('1') %>", depositingEnabled = true }
@@ -65,35 +65,28 @@ depends = ["invoke.registerCollateralPriceNode"]
 target = ["synthetix.CoreProxy"]
 fromCall.func = "owner"
 func = "setFeatureFlagAllowAll"
-args = [
-  "<%= formatBytes32String('registerMarket') %>",
-  true
-]
+args = ["<%= formatBytes32String('registerMarket') %>", true]
 
 [invoke.allowAllCreatePool]
 target = ["synthetix.CoreProxy"]
 fromCall.func = "owner"
 func = "setFeatureFlagAllowAll"
-args = [
-  "<%= formatBytes32String('createPool') %>",
-  true
-]
+args = ["<%= formatBytes32String('createPool') %>", true]
 
 # Create pool
 [invoke.createPool]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "createPool"
 args = [
     "<%= settings.poolId %>",
-    "<%= settings.user %>"
+    "<%= settings.owner %>"
 ]
-depends=["invoke.allowAllCreatePool"]
 
 # Set pool as preferred
 [invoke.setPreferredPool]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "setPreferredPool"
 args = [
     "<%= settings.poolId %>",
@@ -104,25 +97,25 @@ depends=["invoke.createPool"]
 [invoke.mintCollateral]
 target = ["collateralToken.MintableToken"]
 func = "mint"
-from="<%= settings.user %>"
+from="<%= settings.owner %>"
 args = [
     "<%= parseEther('100000000') %>",
-    "<%= settings.user %>"
+    "<%= settings.owner %>"
 ]
 
 # User creates account
 [invoke.createAccount]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "createAccount(uint128)"
 args = ["<%= settings.accountId %>"]
-extras.accountId.event = "AccountCreated"
-extras.accountId.arg = 0
+extra.createdAccountId.event = "AccountCreated"
+extra.createdAccountId.arg = 0
 
 # User approves transfer of collateral
 [invoke.approveDeposit]
 target = ["collateralToken.MintableToken"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "approve"
 args = [
     "<%= imports.synthetix.contracts.CoreProxy.address %>",
@@ -133,7 +126,7 @@ depends=["invoke.mintCollateral"]
 # User deposits collateral token
 [invoke.depositCollateral]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "deposit"
 args = [
     "<%= settings.accountId %>",
@@ -145,7 +138,7 @@ depends=["invoke.createAccount", "invoke.approveDeposit"]
 # User delegates to pool
 [invoke.delegateCollateral]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "delegateCollateral"
 args = [
     "<%= settings.accountId %>",
@@ -159,7 +152,7 @@ depends=["invoke.depositCollateral"]
 # User mints quarter of collateral value
 [invoke.mintStablecoins]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "mintUsd"
 args = [
     "<%= settings.accountId %>",
@@ -172,23 +165,23 @@ depends=["invoke.delegateCollateral"]
 # Set the minimum liquidity ratio
 [invoke.setMinimumLiquidityRatio]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "setMinLiquidityRatio(uint256)"
 args = ["<%= parseEther('2') %>"]
 
 # Provision the spot market factory
 [provision.spotMarket]
 source = "<%= settings.spotMarket %>"
-options.coreProxyOwner = "<%= settings.user %>"
-options.owner = "<%= settings.user %>"
+options.coreProxyOwner = "<%= settings.owner %>"
+options.owner = "<%= settings.owner %>"
 options.synthetixPackage = "<%= settings.synthetix %>"
 
 # Create snxTKN Synth
 [invoke.createSynth]
 target = ["spotMarket.SpotMarketProxy"]
 func = "createSynth"
-from = "<%= settings.user %>"
-args = ["Synthetic Token", "snxTKN", "<%= settings.user %>"]
+from = "<%= settings.owner %>"
+args = ["Synthetic Token", "snxTKN", "<%= settings.owner %>"]
 extra.synthMarketId.event = "SynthRegistered"
 extra.synthMarketId.arg = 0
 
@@ -196,22 +189,22 @@ extra.synthMarketId.arg = 0
 [invoke.updateSynthPriceData]
 target = ["spotMarket.SpotMarketProxy"]
 func = "updatePriceData"
-from = "<%= settings.user %>"
-args = ["<%= extras.synthMarketId %>", "<%= extras.tkn_oracle_id %>", "<%= extras.tkn_oracle_id %>"]
+from = "<%= settings.owner %>"
+args = ["<%= extras.synthMarketId %>", "<%= extras.tkn_oracle_id %>", "<%= extras.tkn_oracle_id %>", 60]
 depends = ['invoke.createSynth', 'invoke.registerCollateralPriceNode']
 
 # Add a 1% fixed feed on atomic exchanges
 [invoke.addAtomicFixedFee]
 target = ["spotMarket.SpotMarketProxy"]
 func = "setAtomicFixedFee"
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 args = ["<%= extras.synthMarketId %>", "<%= parseEther('0.01') %>"]
 depends = ['invoke.createSynth']
 
 # Allow snxTKN market to deposit unlimited TKN for wrappers
 [invoke.setMarketCollateralSupplyCap]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "configureMaximumMarketCollateral"
 args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
 depends = ['invoke.createSynth']
@@ -220,14 +213,14 @@ depends = ['invoke.createSynth']
 [invoke.initializeWrapper]
 target = ["spotMarket.SpotMarketProxy"]
 func = "setWrapper"
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 args = ["<%= extras.synthMarketId %>", "<%= imports.collateralToken.contracts.MintableToken.address %>", "<%= MaxUint256 %>"]
 depends = ['invoke.setMarketCollateralSupplyCap']
 
 # Set Pool Configuration
 [invoke.setPoolConfiguration]
 target = ["synthetix.CoreProxy"]
-from = "<%= settings.user %>"
+from = "<%= settings.owner %>"
 func = "setPoolConfiguration"
 args = [
     "<%= settings.poolId %>",
@@ -240,38 +233,23 @@ depends=["invoke.createPool", "invoke.updateSynthPriceData"]
 # Provision the perps market factory
 [provision.perpsMarket]
 source = "<%= settings.perpsMarket %>"
-options.coreProxyOwner = "<%= settings.user %>"
-options.owner = "<%= settings.user %>"
+options.coreProxyOwner = "<%= settings.owner %>"
+options.owner = "<%= settings.owner %>"
 options.salt = "alpha"
 options.synthetixPackage = "<%= settings.synthetix %>"
 options.spotMarketPackage = "<%= settings.spotMarket %>"
 
-# Allow anyone to create a perps market
-[invoke.allowAllCreatePerpsMarket]
+[invoke.addPerpsSystemToFeatureFlag]
 target = ["perpsMarket.PerpsMarketProxy"]
-fromCall.func = "owner"
 func = "setFeatureFlagAllowAll"
-args = [
-  "<%= formatBytes32String('createMarket') %>",
-  true
-]
-
-# Allow anyone to create a perps account
-[invoke.allowCreatePerpsAccount]
-target = ["perpsMarket.PerpsMarketProxy"]
-fromCall.func = "owner"
-func = "setFeatureFlagAllowAll"
-args = [
-    "<%= formatBytes32String('createAccount') %>",
-    true
-]
+from = "<%= settings.owner %>"
+args = ["<%= formatBytes32String('perpsSystem') %>", true]
 
 # Create and configure Perp Market
 [invoke.createPerpsMarket]
 target = ["perpsMarket.PerpsMarketProxy"]
 func = "createMarket"
-from = "<%= settings.user %>"
-args = ["<%= settings.perpsMarketId %>", "perpTKN", "<%= settings.user %>"]
-depends = ["invoke.allowCreatePerpsAccount"]
+from = "<%= settings.owner %>"
+args = ["<%= settings.perpsMarketId %>", "perpTKN", "<%= settings.owner %>"]
 
 # See https://github.com/Synthetixio/synthetix-deployments/tree/main/tomls/markets/perps for examples of how to configure perps
